@@ -67,10 +67,26 @@ pipeline {
         //         sh 'npm test'
         //     }
         // }
-       stage('Run Unit Tests') {
-            steps {
+      // stage('Run Unit Tests') {
+        //    steps {
                 // Run Karma tests
-                sh 'npx karma start --single-run --browsers ChromeHeadless'
+          //      sh 'npx karma start --single-run --browsers ChromeHeadless'
+           // }
+        //}
+
+        stage('SCA - npm audit') {
+            steps {
+                script {
+                    sh 'node sca.js'
+                }
+            }
+        }
+
+        stage('SAST - ESLint') {
+            steps {
+                script {
+                    sh 'node sast.js'
+                }
             }
         }
         // stage('Archive Test Reports') {

@@ -32,6 +32,8 @@ pipeline {
                         echo 'No changes detected. Fetching the latest artifacts...'
                         // This will fetch the latest archived artifacts
                         unstash 'build-artifacts'
+                         def targetDir = "${env.WORKSPACE}/artifacts"
+                        sh "mkdir -p ${targetDir} && mv ${WORKSPACE}/artifacts/* ${targetDir}/"
                     }
                 }
             }

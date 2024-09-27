@@ -73,6 +73,9 @@ pipeline {
             
           //   // Stash the artifacts for future runs
           //   stash name: 'build-artifacts', includes: 'artifacts/**'
+             dir("${env.WORKSPACE}/artifacts") {
+            stash name: 'build-artifacts', includes: '**'
+        }
             echo 'Pipeline failed.'
         }
     }

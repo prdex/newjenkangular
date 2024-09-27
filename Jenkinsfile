@@ -59,11 +59,18 @@ pipeline {
             stash name: 'build-artifacts', includes: 'artifacts/**'
         }
        success {
-          
+            archiveArtifacts artifacts: 'artifacts/**', fingerprint: true
+            
+            // Stash the artifacts for future runs
+            stash name: 'build-artifacts', includes: 'artifacts/**'
             echo 'Pipeline succeeded!'
         }
 
         failure {
+          archiveArtifacts artifacts: 'artifacts/**', fingerprint: true
+            
+            // Stash the artifacts for future runs
+            stash name: 'build-artifacts', includes: 'artifacts/**'
             echo 'Pipeline failed.'
         }
     }

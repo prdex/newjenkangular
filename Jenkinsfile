@@ -47,6 +47,16 @@ pipeline {
             }
         }
 
+      stage('Cache Artifacts') {
+            steps {
+                script {
+                    // Save the build output to a directory
+                    def artifactsDir = "${env.WORKSPACE}/artifacts"
+                    sh "mkdir -p ${artifactsDir} && cp -r dist/* ${artifactsDir}/"
+                }
+            }
+      }
+
         stage('Build') {
           
             steps {
@@ -118,9 +128,7 @@ pipeline {
     }
 
     post {
-      always {
-            archiveArtifacts artifacts: 'node_modules/**', fingerprint: true
-        }
+      
         success {
           
             echo 'Pipeline succeeded!'

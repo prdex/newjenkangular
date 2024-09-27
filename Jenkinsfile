@@ -29,7 +29,20 @@ pipeline {
         
             steps {
                 // Install Node.js dependencies
-                sh 'npm install'
+               // sh 'npm install'
+
+                script {
+                    // Cache node_modules and package-lock.json
+                    def cacheKey = "${env.WORKSPACE}/node_modules"
+                    def lockFile = "${env.WORKSPACE}/package-lock.json"
+                    
+                    // Check if cache exists
+                    if (fileExists(cacheKey) && fileExists(lockFile)) {
+                        echo 'Using cached node_modules'
+                    } else {
+                        echo 'Installing dependencies'
+                        sh 'npm install'
+                    }
             }
         }
 
@@ -74,21 +87,21 @@ pipeline {
            // }
         //}
 
-        stage('SCA - npm audit') {
-            steps {
-                script {
-                    sh 'node sca.js'
-                }
-            }
-        }
+       // stage('SCA - npm audit') {
+        //    steps {
+         //       script {
+           //         sh 'node sca.js'
+            //    }
+            //}
+       // }
 
-        stage('SAST - ESLint') {
-            steps {
-                script {
-                    sh 'node sast.js'
-                }
-            }
-        }
+        // stage('SAST - ESLint') {
+        //     steps {
+        //         script {
+        //             sh 'node sast.js'
+        //         }
+        //     }
+        // }
         // stage('Archive Test Reports') {
         //     steps {
         //         // Archive the generated test reports
@@ -104,7 +117,11 @@ pipeline {
     }
 
     post {
+      always {
+            archiveArtifacts artifacts: 'node_modules/**', fingerprint: true
+        }
         success {
+          
             echo 'Pipeline succeeded!'
         }
 

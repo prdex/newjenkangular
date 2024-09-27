@@ -1,135 +1,63 @@
 pipeline {
     agent any
-    // environment {
-    //     // Ensure NodeJS is available
-    //     PATH = "${env.NODEJS_HOME}/bin:${env.PATH}"
-    //     CHROME_BIN = '/usr/bin/google-chrome'  // Path to the Chrome binary
-    //     IMAGE_NAME = 'Angulartestimage'
-    // }
+
     stages {
-        stage('Print Node Version') {
-          
+        stage('Preparation') {
             steps {
                 script {
-                    // Print Node.js version
-                    sh 'node --version'
+                    // Checkout the code
+                    checkout scm
+                    
+                    // Check for changes in the repository
+                    def changes = sh(script: 'git diff --name-only HEAD HEAD~1', returnStdout: true).trim()
+                    env.HAS_CHANGES = changes ? 'true' : 'false'
                 }
             }
         }
 
-        stage('Checkout') {
-         
+        stage('Build') {
             steps {
-                // Clone the Git repository
-                git 'https://github.com/prdex/newjenkangular.git'
-            }
-        }
-
-        stage('Install Dependencies') {
-        
-            steps {
-                // Install Node.js dependencies
-               // sh 'npm install'
-
                 script {
-                    // Cache node_modules and package-lock.json
-                    def cacheKey = "${env.WORKSPACE}/node_modules"
-                    def lockFile = "${env.WORKSPACE}/package-lock.json"
-                    
-                    // Check if cache exists
-                    if (fileExists(cacheKey) && fileExists(lockFile)) {
-                        echo 'Using cached node_modules'
-                    } else {
-                        echo 'Installing dependencies'
+                    // Check if there are changes
+                    if (env.HAS_CHANGES == 'true') {
+                        echo 'Changes detected. Building the project...'
                         sh 'npm install'
+                        sh 'npm run build'
+                        
+                        // Store the artifacts
+                        def artifactsDir = "${env.WORKSPACE}/artifacts"
+                        sh "mkdir -p ${artifactsDir} && cp -r dist/* ${artifactsDir}/"
+                    } else {
+                        echo 'No changes detected. Fetching the latest artifacts...'
+                        // This will fetch the latest archived artifacts
+                        unstash 'build-artifacts'
                     }
                 }
             }
         }
 
-      stage('Cache Artifacts') {
+        stage('Test') {
             steps {
-                script {
-                    // Save the build output to a directory
-                    def artifactsDir = "${env.WORKSPACE}/artifacts"
-                    sh "mkdir -p ${artifactsDir} && cp -r dist/* ${artifactsDir}/"
-                }
-            }
-      }
-
-        stage('Build') {
-          
-            steps {
-                // Build the Angular application
-                sh 'npm run ng build'
+                sh 'npm test'
             }
         }
-        // stage('Docker Build') {
-        //     steps {
-        //         script {
-        //             // Build Docker image
-        //             sh """
-        //             docker build -t ${IMAGE_NAME}:latest .
-        //             """
-        //         }
-        //     }
-        // }
-        
-        // stage('Run Docker Container') {
-        //     steps {
-        //         script {
-        //             // Run Docker container
-        //             sh """
-        //             docker run -d -p 4200:80 ${IMAGE_NAME}:latest
-        //             """
-        //         }
-        //     }
-        // }
-        // stage('Test') {
-        //     steps {
-        //         // Run Angular tests
-        //         sh 'npm test'
-        //     }
-        // }
-      // stage('Run Unit Tests') {
-        //    steps {
-                // Run Karma tests
-          //      sh 'npx karma start --single-run --browsers ChromeHeadless'
-           // }
-        //}
 
-       // stage('SCA - npm audit') {
-        //    steps {
-         //       script {
-           //         sh 'node sca.js'
-            //    }
-            //}
-       // }
-
-        // stage('SAST - ESLint') {
-        //     steps {
-        //         script {
-        //             sh 'node sast.js'
-        //         }
-        //     }
-        // }
-        // stage('Archive Test Reports') {
-        //     steps {
-        //         // Archive the generated test reports
-        //         archiveArtifacts artifacts: 'test-results/junit.xml', fingerprint: true
-        //     }
-        // }
-        // stage('Serve') {
-        //     steps {
-        //         // Serve the Angular application locally
-        //         sh 'npx http-server dist/ -p 4200'
-        //     }
-        // }
+        stage('Deploy') {
+            steps {
+                echo 'Deploying application...'
+            }
+        }
     }
 
     post {
-      
-        success {
+        always {
+            // Archive artifacts in Jenkins' built-in artifact repository
+            archiveArtifacts artifacts: 'artifacts/**', fingerprint: true
+            
+            // Stash the artifacts for future runs
+            stash name: 'build-artifacts', includes: 'artifacts/**'
+        }
+       success {
           
             echo 'Pipeline succeeded!'
         }

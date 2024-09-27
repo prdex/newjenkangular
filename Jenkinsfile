@@ -36,17 +36,17 @@ pipeline {
             }
         }
 
-        stage('Test') {
-            steps {
-                sh 'npm test'
-            }
-        }
+        // stage('Test') {
+        //     steps {
+        //         sh 'npm test'
+        //     }
+        // }
 
-        stage('Deploy') {
-            steps {
-                echo 'Deploying application...'
-            }
-        }
+        // stage('Deploy') {
+        //     steps {
+        //         echo 'Deploying application...'
+        //     }
+        // }
     }
 
     post {

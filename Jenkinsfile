@@ -6,10 +6,11 @@ pipeline {
             steps {
                 script {
                     // Checkout the code
-                    checkout scm
-                    
-                    // Check for changes in the repository
-                    def changes = sh(script: 'git diff --name-only HEAD HEAD~1', returnStdout: true).trim()
+                 // Fetch the latest changes from the remote repository
+                    sh 'git fetch origin'
+
+                    // Check for changes against the origin/master (or your target branch)
+                    def changes = sh(script: 'git diff --name-only origin/master', returnStdout: true).trim()
                     env.HAS_CHANGES = changes ? 'true' : 'false'
                 }
             }

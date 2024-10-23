@@ -1,12 +1,19 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_NAME = 'my-jenkins-zap'
+        CONTAINER_NAME = 'zap-container'
+        ZAP_PORT = '8081'
+        TARGET_URL = 'http://localhost:4200' // Change to your target URL
+        REPORT_FILE = 'zap_report.html'
+    }
+
     stages {
         stage('Preparation') {
             steps {
                 script {
                     // Checkout the code
-                 // Fetch the latest changes from the remote repository
                     sh 'git fetch origin'
 
                     // Check for changes against the origin/master (or your target branch)
@@ -30,52 +37,98 @@ pipeline {
                         sh "mkdir -p ${artifactsDir} && cp -r dist/* ${artifactsDir}/"
                     } else {
                         echo 'No changes detected. Fetching the latest artifacts...'
-                        // This will fetch the latest archived artifacts
+                        // Fetch the latest archived artifacts
                         unstash 'build-artifacts'
-                         def targetDir = "${env.WORKSPACE}/artifacts"
+                        def targetDir = "${env.WORKSPACE}/artifacts"
                         sh "mkdir -p ${targetDir} && mv ${WORKSPACE}/artifacts/* ${targetDir}/"
                     }
                 }
             }
         }
 
-        // stage('Test') {
-        //     steps {
-        //         sh 'npm test'
-        //     }
-        // }
+        stage('Run ZAP Container') {
+            steps {
+                script {
+                    // Remove any existing ZAP container
+                    sh "docker rm -f ${CONTAINER_NAME} || true"
+                    // Run the ZAP container
+                    sh "docker run -d --name ${CONTAINER_NAME} -p ${ZAP_PORT}:${ZAP_PORT} ${IMAGE_NAME}"
+                    // Wait for ZAP to initialize
+                    sleep 30
+                }
+            }
+        }
 
-        // stage('Deploy') {
-        //     steps {
-        //         echo 'Deploying application...'
-        //     }
-        // }
+        stage('Start ZAP Scan') {
+            steps {
+                script {
+                    // Start the scan using ZAP API
+                    def scanResponse = sh(script: """
+                        curl -s -X POST "http://localhost:${ZAP_PORT}/JSON/ascan/action/scan/?url=${TARGET_URL}&apikey=your_api_key"
+                    """, returnStdout: true)
+
+                    echo "Scan Response: ${scanResponse}"
+                    // Parse the scan ID
+                    env.SCAN_ID = scanResponse.token // Adjust if necessary
+                }
+            }
+        }
+
+        stage('Monitor Scan Progress') {
+            steps {
+                script {
+                    def progress = 0
+                    while (progress < 100) {
+                        sleep 10 // Wait before checking progress
+                        progress = sh(script: """
+                            curl -s "http://localhost:${ZAP_PORT}/JSON/ascan/view/status/?scanId=${env.SCAN_ID}&apikey=your_api_key" | jq -r '.status'
+                        """, returnStdout: true).trim()
+
+                        echo "Scan progress: ${progress}%"
+                    }
+                }
+            }
+        }
+
+        stage('Generate ZAP Report') {
+            steps {
+                script {
+                    // Generate the HTML report
+                    sh """
+                        curl -s "http://localhost:${ZAP_PORT}/OTHER/core/other/htmlreport/?apikey=your_api_key" -o ${REPORT_FILE}
+                    """
+                    echo "Report generated: ${REPORT_FILE}"
+                }
+            }
+        }
+
+        stage('Stop ZAP Container') {
+            steps {
+                script {
+                    // Stop and remove the ZAP container after testing
+                    sh "docker stop ${CONTAINER_NAME} || true"
+                    sh "docker rm ${CONTAINER_NAME} || true"
+                }
+            }
+        }
     }
 
-    post {
-        // always {
-        //     // Archive artifacts in Jenkins' built-in artifact repository
-        //     archiveArtifacts artifacts: 'artifacts/**', fingerprint: true
+    // post {
+    //     always {
+    //         // Archive artifacts in Jenkins' built-in artifact repository
+    //         archiveArtifacts artifacts: 'artifacts/**', fingerprint: true
             
-        //     // Stash the artifacts for future runs
-        //     stash name: 'build-artifacts', includes: 'artifacts/**'
-        // }
-       success {
-        // Change to artifacts directory and stash
-        dir("${env.WORKSPACE}/artifacts") {
-            stash name: 'build-artifacts', includes: '**'
+    //         // Stash the artifacts for future runs
+    //         dir("${env.WORKSPACE}/artifacts") {
+    //             stash name: 'build-artifacts', includes: '**'
+    //         }
+    //     }
+
+        success {
+            echo 'Pipeline completed successfully.'
         }
-         echo 'Pipeline failed.'
-       }
 
         failure {
-          // archiveArtifacts artifacts: 'artifacts/**', fingerprint: true
-            
-          //   // Stash the artifacts for future runs
-          //   stash name: 'build-artifacts', includes: 'artifacts/**'
-             dir("${env.WORKSPACE}/artifacts") {
-            stash name: 'build-artifacts', includes: '**'
-        }
             echo 'Pipeline failed.'
         }
     }

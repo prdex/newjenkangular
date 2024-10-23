@@ -113,16 +113,16 @@ pipeline {
         }
     }
 
-    // post {
-    //     always {
-    //         // Archive artifacts in Jenkins' built-in artifact repository
-    //         archiveArtifacts artifacts: 'artifacts/**', fingerprint: true
+    post {
+        // always {
+        //     // Archive artifacts in Jenkins' built-in artifact repository
+        //     archiveArtifacts artifacts: 'artifacts/**', fingerprint: true
             
-    //         // Stash the artifacts for future runs
-    //         dir("${env.WORKSPACE}/artifacts") {
-    //             stash name: 'build-artifacts', includes: '**'
-    //         }
-    //     }
+        //     // Stash the artifacts for future runs
+        //     dir("${env.WORKSPACE}/artifacts") {
+        //         stash name: 'build-artifacts', includes: '**'
+        //     }
+        // }
 
         success {
             echo 'Pipeline completed successfully.'
@@ -132,3 +132,4 @@ pipeline {
             echo 'Pipeline failed.'
         }
     }
+}

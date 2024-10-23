@@ -4,7 +4,7 @@ FROM jenkins/jenkins:lts
 # Switch to the root user to install additional packages
 USER root
 
-# Install Node.js and Google Chrome
+# Install Node.js, Google Chrome, and OWASP ZAP
 RUN apt-get update && \
     apt-get install -y \
         curl \
@@ -38,9 +38,13 @@ RUN apt-get update && \
     # Install Google Chrome
     && apt-get update \
     && apt-get install -y google-chrome-stable \
+    # Install OWASP ZAP
+    && wget https://github.com/zaproxy/zap-core-libs/releases/download/v2.12.0/ZAP_2_12_0_Linux.tar.gz -O /tmp/zap.tar.gz \
+    && tar -xzf /tmp/zap.tar.gz -C /opt/ \
+    && ln -s /opt/ZAP_2.12.0/zap.sh /usr/local/bin/zap.sh \
     # Clean up to reduce image size
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* /tmp/zap.tar.gz
 
 # Install Puppeteer
 RUN npm install -g puppeteer
@@ -52,7 +56,7 @@ ENV CHROME_BIN=/usr/bin/google-chrome
 USER jenkins
 
 # Expose ports
-EXPOSE 8080 4200
+EXPOSE 8080 4200 8081
 
 # Default command to run Jenkins
 ENTRYPOINT ["/usr/local/bin/jenkins.sh"]

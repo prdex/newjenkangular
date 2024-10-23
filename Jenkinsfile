@@ -27,21 +27,21 @@ pipeline {
             steps {
                 script {
                     // Check if there are changes
-                    if (env.HAS_CHANGES == 'true') {
-                        echo 'Changes detected. Building the project...'
+                    // if (env.HAS_CHANGES == 'true') {
+                    //     echo 'Changes detected. Building the project...'
                         sh 'npm install'
                         sh 'npm run build'
                         
                         // Store the artifacts
-                        def artifactsDir = "${env.WORKSPACE}/artifacts"
-                        sh "mkdir -p ${artifactsDir} && cp -r dist/* ${artifactsDir}/"
-                    } else {
-                        echo 'No changes detected. Fetching the latest artifacts...'
-                        // Fetch the latest archived artifacts
-                        unstash 'build-artifacts'
-                        def targetDir = "${env.WORKSPACE}/artifacts"
-                        sh "mkdir -p ${targetDir} && mv ${WORKSPACE}/artifacts/* ${targetDir}/"
-                    }
+                      //  def artifactsDir = "${env.WORKSPACE}/artifacts"
+                      //  sh "mkdir -p ${artifactsDir} && cp -r dist/* ${artifactsDir}/"
+                    // } else {
+                    //     echo 'No changes detected. Fetching the latest artifacts...'
+                    //     // Fetch the latest archived artifacts
+                    //     unstash 'build-artifacts'
+                    //     def targetDir = "${env.WORKSPACE}/artifacts"
+                    //     sh "mkdir -p ${targetDir} && mv ${WORKSPACE}/artifacts/* ${targetDir}/"
+                    // }
                 }
             }
         }
